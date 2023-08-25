@@ -87,19 +87,21 @@ class InfoUnityCatalogTool(BaseTool):
             retries = Retry(total=10,connect=10,read=10,backoff_factor=0.3)
             adapter = HTTPAdapter(max_retries=retries)
             response = session.get(url, headers=headers)
-            json_data = json.loads(response.text)
-            column_data = json_data['columns']
-            if 'comment' in json_data.keys():
-                table_comment = json_data['comment']
-            else:
-                table_comment = None
-            string_data = self.generate_create_table_query(table_data = column_data,
+            response = session.get(url, headers=headers)
+            if response.status_code == 200:
+                json_data = json.loads(response.text)
+                column_data = json_data['columns']  
+                if 'comment' in json_data.keys():
+                    table_comment = json_data['comment']
+                else:
+                    table_comment = None
+                    string_data = self.generate_create_table_query(table_data = column_data,
                                                            table_name = table_name,
                                                            table_comment = table_comment)
-            
-            
-        final_string += '\n' + string_data
-        return final_string
+                    final_string += '\n' + string_data
+                return final_string
+            else:
+                raise Exception(f"Error fetching table {table_name}: {response.text}") 
 
     def generate_create_table_query(self,table_data,table_name,table_comment):
         sample_rows_in_table_info : int = 3

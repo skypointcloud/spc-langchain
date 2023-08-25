@@ -12,6 +12,7 @@ from langchain.tools.sql_database.tool import (
     QuerySQLCheckerTool,
     QuerySQLDataBaseTool,
 )
+from langchain.tools.unitycatalog_database.tool import InfoUnityCatalogTool
 
 class UCSQLDatabaseToolkit(BaseToolkit):
     """Toolkit for interacting with SQL databases."""
