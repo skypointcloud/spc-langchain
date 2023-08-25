@@ -95,10 +95,10 @@ class InfoUnityCatalogTool(BaseTool):
                     table_comment = json_data['comment']
                 else:
                     table_comment = None
-                    string_data = self.generate_create_table_query(table_data = column_data,
-                                                           table_name = table_name,
-                                                           table_comment = table_comment)
-                    final_string += '\n' + string_data
+                string_data = self.generate_create_table_query(table_data = column_data,
+                                                        table_name = table_name,
+                                                        table_comment = table_comment)
+                final_string += '\n' + string_data
                 return final_string
             else:
                 raise Exception(f"Error fetching table {table_name}: {response.text}") 
