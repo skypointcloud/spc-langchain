@@ -105,7 +105,7 @@ from langchain.tools.spark_sql.tool import (
     QueryCheckerTool,
     QuerySparkSQLTool,
 )
-from langchain.tools.unitycatalog_database.tool import InfoUnityCatalogTool
+from langchain.tools.spark_unitycatalog.tool import InfoUnityCatalogTool
 from langchain.tools.sql_database.tool import (
     BaseSQLDatabaseTool,
     InfoSQLDatabaseTool,
@@ -168,8 +168,7 @@ __all__ = [
     "IFTTTWebhook",
     "InfoPowerBITool",
     "InfoSQLDatabaseTool",
-    "InfoUnityCatalogTool"
-    "InfoSparkSQLTool",
+    "InfoUnityCatalogTool" "InfoSparkSQLTool",
     "JiraAction",
     "JsonGetValueTool",
     "JsonListKeysTool",
