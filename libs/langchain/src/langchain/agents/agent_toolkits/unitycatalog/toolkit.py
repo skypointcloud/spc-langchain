@@ -1,30 +1,30 @@
 """Toolkit for interacting with a SQL database."""
 from typing import List
 
-from pydantic import Field
-
 from langchain.agents.agent_toolkits.base import BaseToolkit
 from langchain.base_language import BaseLanguageModel
 from langchain.sql_database import SQLDatabase
 from langchain.tools import BaseTool
+from langchain.tools.spark_unitycatalog.tool import InfoUnityCatalogTool
 from langchain.tools.sql_database.tool import (
     ListSQLDatabaseTool,
     QuerySQLCheckerTool,
     QuerySQLDataBaseTool,
 )
-from langchain.tools.unitycatalog_database.tool import InfoUnityCatalogTool
+from pydantic import Field
+
 
 class UCSQLDatabaseToolkit(BaseToolkit):
     """Toolkit for interacting with SQL databases."""
+
     db: SQLDatabase = Field(exclude=True)
     llm: BaseLanguageModel = Field(exclude=True)
-    db_token : str
-    db_host : str
-    db_catalog : str
-    db_schema : str
-    db_warehouse_id : str
+    db_token: str
+    db_host: str
+    db_catalog: str
+    db_schema: str
+    db_warehouse_id: str
     allow_extra_fields = True
-
 
     @property
     def dialect(self) -> str:
@@ -35,7 +35,6 @@ class UCSQLDatabaseToolkit(BaseToolkit):
         """Configuration for this pydantic object."""
 
         arbitrary_types_allowed = True
-
 
     def get_tools(self) -> List[BaseTool]:
         """Get the tools in the toolkit."""
@@ -58,15 +57,13 @@ class UCSQLDatabaseToolkit(BaseToolkit):
                 db=self.db, description=query_sql_database_tool_description
             ),
             InfoUnityCatalogTool(
-            
-                db=self.db, 
+                db=self.db,
                 description=info_sql_database_tool_description,
-                db_token  = self.db_token ,
-                db_host = self.db_host ,
-                db_catalog = self.db_catalog ,
-                db_schema = self.db_schema ,
-                db_warehouse_id = self.db_warehouse_id
-
+                db_token=self.db_token,
+                db_host=self.db_host,
+                db_catalog=self.db_catalog,
+                db_schema=self.db_schema,
+                db_warehouse_id=self.db_warehouse_id,
             ),
             ListSQLDatabaseTool(db=self.db),
             QuerySQLCheckerTool(db=self.db, llm=self.llm),
