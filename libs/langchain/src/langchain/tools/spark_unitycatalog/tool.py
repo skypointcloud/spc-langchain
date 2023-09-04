@@ -158,3 +158,69 @@ class InfoUnityCatalogTool(BaseTool):
             sample_rows_str = ""
 
         return sample_rows_str
+
+
+class ListUnityCatalogTablesTool(BaseTool):
+    class Config(BaseTool.Config):
+        """Configuration for this pydantic object."""
+
+        arbitrary_types_allowed = True
+        extra = Extra.allow
+
+    """Tool for getting tables names."""
+    db: SQLDatabase = Field(exclude=True)
+    name = "sql_db_list_tables"
+    description = """Input is an empty string, output is a comma separated list tables in the database and their description in brackets."""
+    db_token: str
+    db_host: str
+    db_catalog: str
+    db_schema: str
+    db_warehouse_id: str
+
+    def __init__(__pydantic_self__, **data: Any) -> None:
+        """Initialize the tool."""
+        super().__init__(**data)
+
+    def _run(
+        self,
+        input: str = "",
+        run_manager: Optional[CallbackManagerForToolRun] = None,
+    ) -> str:
+        """Get the schema for tables in a comma-separated list."""
+        return self.get_table_list_from_unitycatalog()
+
+    async def _arun(
+        self,
+        table_name: str,
+        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
+    ) -> str:
+        raise NotImplementedError("ListSqlTablesTool does not support async")
+
+    def get_table_list_from_unitycatalog(
+        self,
+    ) -> str:
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.db_token}",
+        }
+        retries = Retry(total=5, backoff_factor=0.3)
+        adapter = HTTPAdapter(max_retries=retries)
+        session = requests.Session()
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+        # TODO: Improve performance by using asyncio or threading to make concurrent requests
+
+        url = f"https://{self.db_host}/api/2.1/unity-catalog/tables"
+        params = {"catalog_name": self.db_catalog, "schema_name": self.db_schema}
+        response = session.get(url, headers=headers, params=params)
+        if response.status_code != 200:
+            raise Exception(f"Error fetching list of tables : {response.text}")
+        json_data = json.loads(response.text)
+        tables = json_data["tables"]
+        table_info: str = ""
+
+        for table in tables:
+            table_name = table["name"]
+            comment = table["comment"]
+            table_info += f"{table_name}({comment})\n"
+        return table_info
