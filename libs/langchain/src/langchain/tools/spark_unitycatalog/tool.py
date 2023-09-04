@@ -221,6 +221,6 @@ class ListUnityCatalogTablesTool(BaseTool):
 
         for table in tables:
             table_name = table["name"]
-            comment = table["comment"]
+            comment = table["comment"] if "comment" in table.keys() else None
             table_info += f"{table_name}({comment})\n"
         return table_info
