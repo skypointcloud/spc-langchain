@@ -208,7 +208,6 @@ class ListUnityCatalogTablesTool(BaseTool):
         session = requests.Session()
         session.mount("http://", adapter)
         session.mount("https://", adapter)
-        # TODO: Improve performance by using asyncio or threading to make concurrent requests
 
         url = f"https://{self.db_host}/api/2.1/unity-catalog/tables"
         params = {"catalog_name": self.db_catalog, "schema_name": self.db_schema}
