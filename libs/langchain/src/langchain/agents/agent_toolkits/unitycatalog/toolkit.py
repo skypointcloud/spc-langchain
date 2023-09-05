@@ -5,12 +5,11 @@ from langchain.agents.agent_toolkits.base import BaseToolkit
 from langchain.base_language import BaseLanguageModel
 from langchain.sql_database import SQLDatabase
 from langchain.tools import BaseTool
-from langchain.tools.spark_unitycatalog.tool import InfoUnityCatalogTool
-from langchain.tools.sql_database.tool import (
-    ListSQLDatabaseTool,
-    QuerySQLCheckerTool,
-    QuerySQLDataBaseTool,
+from langchain.tools.spark_unitycatalog.tool import (
+    InfoUnityCatalogTool,
+    ListUnityCatalogTablesTool,
 )
+from langchain.tools.sql_database.tool import QuerySQLCheckerTool, QuerySQLDataBaseTool
 from pydantic import Field
 
 
@@ -65,6 +64,13 @@ class UCSQLDatabaseToolkit(BaseToolkit):
                 db_schema=self.db_schema,
                 db_warehouse_id=self.db_warehouse_id,
             ),
-            ListSQLDatabaseTool(db=self.db),
+            ListUnityCatalogTablesTool(
+                db=self.db,
+                db_token=self.db_token,
+                db_host=self.db_host,
+                db_catalog=self.db_catalog,
+                db_schema=self.db_schema,
+                db_warehouse_id=self.db_warehouse_id,
+            ),
             QuerySQLCheckerTool(db=self.db, llm=self.llm),
         ]
