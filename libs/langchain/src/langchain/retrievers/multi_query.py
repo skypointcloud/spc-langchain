@@ -1,4 +1,6 @@
+import asyncio
 import logging
+from asyncio import Future
 from typing import List
 
 from langchain.callbacks.manager import CallbackManagerForRetrieverRun
@@ -94,7 +96,11 @@ class MultiQueryRetriever(BaseRetriever):
             Unique union of relevant documents from all generated queries
         """
         queries = self.generate_queries(query, run_manager)
-        documents = self.retrieve_documents(queries, run_manager)
+        documents = documents = [
+            doc
+            for documents in asyncio.run(self.aretrieve_documents(queries, run_manager))
+            for doc in documents
+        ]
         unique_documents = self.unique_union(documents)
         return unique_documents
 
@@ -135,6 +141,26 @@ class MultiQueryRetriever(BaseRetriever):
             )
             documents.extend(docs)
         return documents
+
+    async def aretrieve_documents(
+        self, queries: List[str], run_manager: CallbackManagerForRetrieverRun
+    ) -> Future[List[List[Document]]]:
+        """Run all LLM generated queries concurrently.
+
+        Args:
+            queries: query list
+
+        Returns:
+            List of retrieved Documents
+        """
+        return await asyncio.gather(
+            *[
+                self.retriever.aget_relevant_documents(
+                    query, callbacks=run_manager.get_child()
+                )
+                for query in queries
+            ]
+        )
 
     def unique_union(self, documents: List[Document]) -> List[Document]:
         """Get unique Documents.
