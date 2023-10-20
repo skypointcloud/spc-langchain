@@ -16,3 +16,17 @@ If there are any of the above mistakes, rewrite the query. If there are no mista
 Output the final SQL query only.
 
 SQL Query: """
+
+
+SQL_QUERY_VALIDATOR = """
+Act as a SQL Query Validator. Check if the columns in the generated sql_query matches with the columns with the schema of tables. 
+Add limit 10 to the sql query if it not present and return the sql_query
+The schema is passed as a key value pair where key is the table name and value is the schema of the table.
+The sql_query is passed as a string.
+If the check is passed return the sql_query and use sql_db_query tool to execute the query.
+If the check is failed return an error message and ask the llm to generate correct sql query by using sql_db_schema tool.
+The schema is {db_schema}.
+The sql_query is {query}.
+
+Begin SQL Query Validation.
+"""

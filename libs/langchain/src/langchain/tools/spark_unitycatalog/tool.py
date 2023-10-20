@@ -1,15 +1,22 @@
 # flake8: noqa
 """Tools for interacting with a SQL database."""
 import json
+import os
+import re
 from typing import Any, Dict, List, Optional
 
+import openai
 import requests
 from langchain.callbacks.manager import (
     AsyncCallbackManagerForToolRun,
     CallbackManagerForToolRun,
 )
+from langchain.chains import LLMChain
+from langchain.llms import AzureOpenAI
+from langchain.prompts import PromptTemplate
 from langchain.sql_database import SQLDatabase
-from langchain.tools.base import BaseTool
+from langchain.tools.base import StateTool
+from langchain.tools.spark_unitycatalog.prompt import SQL_QUERY_VALIDATOR
 from pydantic import BaseModel, Extra, Field
 from requests.adapters import HTTPAdapter
 from sqlalchemy.exc import ProgrammingError
@@ -23,15 +30,15 @@ class BaseSQLDatabaseTool(BaseModel):
 
     # Override BaseTool.Config to appease mypy
     # See https://github.com/pydantic/pydantic/issues/4173
-    class Config(BaseTool.Config):
+    class Config(StateTool.Config):
         """Configuration for this pydantic object."""
 
         arbitrary_types_allowed = True
         extra = Extra.allow
 
 
-class InfoUnityCatalogTool(BaseTool):
-    class Config(BaseTool.Config):
+class InfoUnityCatalogTool(StateTool):
+    class Config(StateTool.Config):
         """Configuration for this pydantic object."""
 
         arbitrary_types_allowed = True
@@ -160,8 +167,8 @@ class InfoUnityCatalogTool(BaseTool):
         return sample_rows_str
 
 
-class ListUnityCatalogTablesTool(BaseTool):
-    class Config(BaseTool.Config):
+class ListUnityCatalogTablesTool(StateTool):
+    class Config(StateTool.Config):
         """Configuration for this pydantic object."""
 
         arbitrary_types_allowed = True
@@ -223,3 +230,90 @@ class ListUnityCatalogTablesTool(BaseTool):
             comment = table["comment"] if "comment" in table.keys() else None
             table_info += f"{table_name}({comment})\n"
         return table_info
+
+
+class SqlQueryValidatorTool(StateTool):
+    """Tool for validating a SQL query.Use this before running the query."""
+
+    name = "sql_db_query_validator"
+    description = """
+    Input to this tool is sql_query   
+
+    Example Input: "Select * from table1"
+    """
+
+    class Config(StateTool.Config):
+        """Configuration for this pydantic object."""
+
+        arbitrary_types_allowed = True
+        extra = Extra.allow
+
+    def __init__(__pydantic_self__, **data: Any) -> None:
+        """Initialize the tool."""
+        super().__init__(**data)
+
+    def _run(
+        self,
+        query: str,
+        run_manager: Optional[CallbackManagerForToolRun] = None,
+    ) -> str:
+        """Get the schema for tables in a comma-separated list."""
+        return self._validate_sql_query(query)
+
+    async def _arun(
+        self,
+        table_name: str,
+        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
+    ) -> str:
+        raise NotImplementedError("ListSqlTablesTool does not support async")
+
+    def _setup_llm(self):
+        openai.api_type = "azure"
+        openai.api_version = "2022-12-01"
+        openai.api_key = os.getenv("OPENAI_API_KEY")
+        openai.api_base = os.getenv("OPENAI_API_BASE")
+        deployment_name = os.getenv("AZURE_OPENAI_INSTRUCT_LLM_DEPLOYMENT_NAME")
+        llm = AzureOpenAI(
+            deployment_name=deployment_name,
+            model_name=os.getenv("OPENAI_INSTRUCT_LLM_MODEL"),
+            temperature=0,
+        )
+        return llm
+
+    def _parse_db_schema(self):
+        sql_db_schema_value = {}
+
+        for value in self.state:
+            for key, input_string in value.items():
+                if "sql_db_schema" in key:
+                    tool_input_match = re.search(
+                        r"CREATE TABLE (.*?) COMMENT", input_string
+                    )
+                    if tool_input_match:
+                        table_name = tool_input_match.group(1)
+                        create_table_match = re.search(
+                            rf"CREATE TABLE {table_name}.*?USING DELTA",
+                            input_string,
+                            re.DOTALL,
+                        )
+                        if create_table_match:
+                            table_schema = create_table_match.group()
+                            sql_db_schema_value[table_name] = table_schema
+                else:
+                    return None
+
+        return sql_db_schema_value
+
+    def _validate_sql_query(self, query):
+
+        db_schema = self._parse_db_schema()
+
+        prompt_input = PromptTemplate(
+            input_variables=["db_schema", "query"],
+            template=SQL_QUERY_VALIDATOR,
+        )
+        chain = LLMChain(llm=self._setup_llm(), prompt=prompt_input)
+
+        query_validation = chain.run(({"db_schema": db_schema, "query": query}))
+
+        return query_validation

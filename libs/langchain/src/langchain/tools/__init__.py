@@ -108,6 +108,7 @@ from langchain.tools.spark_sql.tool import (
 from langchain.tools.spark_unitycatalog.tool import (
     InfoUnityCatalogTool,
     ListUnityCatalogTablesTool,
+    SqlQueryValidatorTool,
 )
 from langchain.tools.sql_database.tool import (
     BaseSQLDatabaseTool,
@@ -171,8 +172,10 @@ __all__ = [
     "IFTTTWebhook",
     "InfoPowerBITool",
     "InfoSQLDatabaseTool",
-    "InfoUnityCatalogTool" "InfoSparkSQLTool",
-    "ListUnityCatalogTablesTool" "JiraAction",
+    "InfoUnityCatalogTool",
+    "InfoSparkSQLTool",
+    "ListUnityCatalogTablesTool",
+    "JiraAction",
     "JsonGetValueTool",
     "JsonListKeysTool",
     "ListDirectoryTool",
@@ -211,6 +214,7 @@ __all__ = [
     "ShellTool",
     "SleepTool",
     "StdInInquireTool",
+    "SqlQueryValidatorTool",
     "SteamshipImageGenerationTool",
     "StructuredTool",
     "Tool",
