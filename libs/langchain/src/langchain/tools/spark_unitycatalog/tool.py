@@ -299,14 +299,15 @@ class SqlQueryValidatorTool(StateTool):
                         if create_table_match:
                             table_schema = create_table_match.group()
                             sql_db_schema_value[table_name] = table_schema
-                else:
-                    return None
 
         return sql_db_schema_value
 
     def _validate_sql_query(self, query):
 
         db_schema = self._parse_db_schema()
+
+        if len(db_schema) == 0:
+            db_schema = None
 
         prompt_input = PromptTemplate(
             input_variables=["db_schema", "query"],
