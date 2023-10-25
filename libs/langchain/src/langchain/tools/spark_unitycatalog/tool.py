@@ -107,6 +107,7 @@ class InfoUnityCatalogTool(StateTool):
                 table_name=table_name,
                 table_comment=table_comment,
             )
+            final_string = f"{final_string}\n{string_data}"
         return f"{final_string}\n{string_data}"
 
     def _generate_create_table_query(
@@ -286,19 +287,22 @@ class SqlQueryValidatorTool(StateTool):
         for value in self.state:
             for key, input_string in value.items():
                 if "sql_db_schema" in key:
-                    tool_input_match = re.search(
-                        r"CREATE TABLE (.*?) COMMENT", input_string
-                    )
+                    tool_input_match = re.search(r"tool_input='(.*?)'", key)
+
                     if tool_input_match:
-                        table_name = tool_input_match.group(1)
-                        create_table_match = re.search(
-                            rf"CREATE TABLE {table_name}.*?USING DELTA",
-                            input_string,
-                            re.DOTALL,
-                        )
-                        if create_table_match:
-                            table_schema = create_table_match.group()
-                            sql_db_schema_value[table_name] = table_schema
+                        tool_input = tool_input_match.group(1)
+                        table_names = [table.strip() for table in tool_input.split(",")]
+
+                        for table_name in table_names:
+                            create_table_match = re.search(
+                                rf"CREATE TABLE {table_name}.*?USING DELTA",
+                                input_string,
+                                re.DOTALL,
+                            )
+
+                            if create_table_match:
+                                table_schema = create_table_match.group()
+                                sql_db_schema_value[table_name] = table_schema
 
         return sql_db_schema_value
 
