@@ -12,7 +12,7 @@ from langchain.callbacks.manager import (
     CallbackManagerForToolRun,
 )
 from langchain.chains import LLMChain
-from langchain.llms import AzureOpenAI
+from langchain.chat_models import AzureChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.sql_database import SQLDatabase
 from langchain.tools.base import StateTool
@@ -93,6 +93,7 @@ class InfoUnityCatalogTool(StateTool):
         session.mount("https://", adapter)
         # TODO: Improve performance by using asyncio or threading to make concurrent requests
         for table_name in table_names:
+            table_name = table_name.strip()
             url = f"https://{self.db_host}/api/2.1/unity-catalog/tables/{self.db_catalog}.{self.db_schema}.{table_name}"
             response = session.get(url, headers=headers)
             if response.status_code != 200:
@@ -273,10 +274,8 @@ class SqlQueryValidatorTool(StateTool):
         openai.api_version = "2022-12-01"
         openai.api_key = os.getenv("OPENAI_API_KEY")
         openai.api_base = os.getenv("OPENAI_API_BASE")
-        deployment_name = os.getenv("AZURE_OPENAI_INSTRUCT_LLM_DEPLOYMENT_NAME")
-        llm = AzureOpenAI(
-            deployment_name=deployment_name,
-            model_name=os.getenv("OPENAI_INSTRUCT_LLM_MODEL"),
+        llm = AzureChatOpenAI(
+            deployment_name=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
             temperature=0,
         )
         return llm
