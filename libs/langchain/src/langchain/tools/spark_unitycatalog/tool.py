@@ -271,12 +271,12 @@ class SqlQueryValidatorTool(StateTool):
 
     def _setup_llm(self):
         openai.api_type = "azure"
-        openai.api_version = "2022-12-01"
         openai.api_key = os.getenv("OPENAI_API_KEY")
         openai.api_base = os.getenv("OPENAI_API_BASE")
         llm = AzureChatOpenAI(
             deployment_name=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
             temperature=0,
+            openai_api_version="2023-03-15-preview",
         )
         return llm
 
