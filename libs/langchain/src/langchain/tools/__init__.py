@@ -108,6 +108,7 @@ from langchain.tools.spark_sql.tool import (
 from langchain.tools.spark_unitycatalog.tool import (
     InfoUnityCatalogTool,
     ListUnityCatalogTablesTool,
+    QueryUCSQLDataBaseTool,
     SqlQueryValidatorTool,
 )
 from langchain.tools.sql_database.tool import (
@@ -202,6 +203,7 @@ __all__ = [
     "QuerySQLCheckerTool",
     "QuerySQLDataBaseTool",
     "QuerySparkSQLTool",
+    "QueryUCSQLDataBaseTool",
     "ReadFileTool",
     "RequestsDeleteTool",
     "RequestsGetTool",

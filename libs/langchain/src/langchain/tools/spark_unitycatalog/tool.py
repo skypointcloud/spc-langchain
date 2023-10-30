@@ -321,3 +321,22 @@ class SqlQueryValidatorTool(StateTool):
         query_validation = chain.run(({"db_schema": db_schema, "query": query}))
 
         return query_validation
+
+
+class QueryUCSQLDataBaseTool(BaseSQLDatabaseTool, StateTool):
+    """Tool for querying a SQL database."""
+
+    name: str = "sql_db_query"
+    description: str = """
+    Input to this tool is a detailed and correct SQL query, output is a result from the database.
+    If the query is not correct, an error message will be returned.
+    If an error is returned, rewrite the query, check the query, and try again.
+    """
+
+    def _run(
+        self,
+        query: str,
+        run_manager: Optional[CallbackManagerForToolRun] = None,
+    ) -> str:
+        """Execute the query, return the results or an error message."""
+        return self.db.run_no_throw(query)
