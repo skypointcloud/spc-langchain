@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="spc-langchain",
-    version="0.0.47",
+    version="0.0.48",
     author="Arun raja",
     author_email="arun.raja@skypointcloud.com",
     description="SkyPoint fork of the LangChain library.",
