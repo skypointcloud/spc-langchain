@@ -293,6 +293,8 @@ class SqlQueryValidatorTool(StateTool):
                         table_names = [table.strip() for table in tool_input.split(",")]
 
                         for table_name in table_names:
+                            table_name = table_name.strip()
+                            table_name = table_name.replace("\\n", "")
                             create_table_match = re.search(
                                 rf"CREATE TABLE {table_name}.*?USING DELTA",
                                 input_string,
@@ -323,9 +325,16 @@ class SqlQueryValidatorTool(StateTool):
         return query_validation
 
 
-class QueryUCSQLDataBaseTool(BaseSQLDatabaseTool, StateTool):
+class QueryUCSQLDataBaseTool(StateTool):
     """Tool for querying a SQL database."""
 
+    class Config(StateTool.Config):
+        """Configuration for this pydantic object."""
+
+        arbitrary_types_allowed = True
+        extra = Extra.allow
+
+    db: SQLDatabase = Field(exclude=True)
     name: str = "sql_db_query"
     description: str = """
     Input to this tool is a detailed and correct SQL query, output is a result from the database.
@@ -333,10 +342,41 @@ class QueryUCSQLDataBaseTool(BaseSQLDatabaseTool, StateTool):
     If an error is returned, rewrite the query, check the query, and try again.
     """
 
+    def __init__(__pydantic_self__, **data: Any) -> None:
+        """Initialize the tool."""
+        super().__init__(**data)
+
     def _run(
         self,
         query: str,
         run_manager: Optional[CallbackManagerForToolRun] = None,
     ) -> str:
         """Execute the query, return the results or an error message."""
-        return self.db.run_no_throw(query)
+        extracted_sql_query = self._extract_sql_query()
+        if extracted_sql_query:
+            executable_query = extracted_sql_query.strip()
+        else:
+            executable_query = query.strip()
+        if executable_query.startswith('"'):
+            executable_query = executable_query[1:]
+        if executable_query.endswith('"'):
+            executable_query = executable_query[:-1]
+        return self.db.run_no_throw(executable_query)
+
+    async def _arun(
+        self,
+        query: str,
+        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
+    ) -> str:
+        raise NotImplementedError("SQLQueryTool does not support async")
+
+    def _extract_sql_query(self):
+        for value in self.state:
+            for key, input_string in value.items():
+                if "sql_db_query_validator" in key:
+                    match = re.search(r'The Final SQL query is:\n"(.*?)"', input_string)
+
+                    if match:
+                        sql_query = match.group(1)
+                        return sql_query
+        return None

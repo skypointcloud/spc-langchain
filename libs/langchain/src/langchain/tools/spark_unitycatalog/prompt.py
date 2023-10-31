@@ -27,6 +27,6 @@ If the check is passed return the sql_query and use sql_db_query tool to execute
 If the check is failed return an error message and ask the llm to generate correct sql query by using sql_db_schema tool.
 The schema is {db_schema}.
 The sql_query is {query}.
-
+Return the response as The Final SQL Query is <sql_query>
 Begin SQL Query Validation.
 """
