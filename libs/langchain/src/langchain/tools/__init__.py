@@ -201,6 +201,8 @@ __all__ = [
     "QuerySQLDataBaseTool",
     "QuerySparkSQLTool",
     "ReadFileTool",
+    "RetrieverQATool",
+    "RetrieverQAWithSourcesTool",
     "RequestsDeleteTool",
     "RequestsGetTool",
     "RequestsPatchTool",
