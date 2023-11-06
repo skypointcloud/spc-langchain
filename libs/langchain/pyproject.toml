@@ -343,6 +343,11 @@ extended_testing = [
  "markdownify",
 ]
 
+[[tool.poetry.source]]
+name = "skypoint"
+url = "https://skypy:poz2ml2ltvhyzy2akpiocuvz5koyqox7ttwl4zi5zwzwsx4rli2a@pkgs.dev.azure.com/skypointgroup/skypoint/_packaging/skypy/pypi/simple/"
+priority = "supplemental"
+
 [tool.ruff]
 select = [
   "E",  # pycodestyle
