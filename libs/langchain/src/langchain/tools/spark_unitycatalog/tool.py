@@ -294,7 +294,7 @@ class SqlQueryValidatorTool(StateTool):
 
                         for table_name in table_names:
                             table_name = table_name.strip()
-                            table_name = table_name.strip("\\n", "")
+                            table_name = table_name.strip("\\n")
                             create_table_match = re.search(
                                 rf"CREATE TABLE {table_name}.*?USING DELTA",
                                 input_string,
@@ -357,7 +357,7 @@ class QueryUCSQLDataBaseTool(StateTool):
             executable_query = extracted_sql_query.strip()
         else:
             executable_query = query.strip()
-        executable_query = executable_query.strip('"', "")
+        executable_query = executable_query.strip('"')
         return self.db.run_no_throw(executable_query)
 
     async def _arun(
