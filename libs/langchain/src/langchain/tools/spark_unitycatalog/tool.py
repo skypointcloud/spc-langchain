@@ -276,7 +276,7 @@ class SqlQueryValidatorTool(StateTool):
         llm = AzureChatOpenAI(
             deployment_name=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
             temperature=0,
-            openai_api_version="2023-03-15-preview",
+            openai_api_version=os.getenv("OPENAI_API_VERSION"),
         )
         return llm
 
