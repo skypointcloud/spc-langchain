@@ -109,7 +109,7 @@ class InfoUnityCatalogTool(StateTool):
                 table_comment=table_comment,
             )
             final_string = f"{final_string}\n{string_data}"
-        return f"{final_string}\n{string_data}"
+        return {final_string}
 
     def _generate_create_table_query(
         self, table_data: List[Dict], table_name: str, table_comment: str
