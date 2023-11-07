@@ -1,15 +1,22 @@
 # flake8: noqa
 """Tools for interacting with a SQL database."""
 import json
+import os
+import re
 from typing import Any, Dict, List, Optional
 
+import openai
 import requests
 from langchain.callbacks.manager import (
     AsyncCallbackManagerForToolRun,
     CallbackManagerForToolRun,
 )
+from langchain.chains import LLMChain
+from langchain.chat_models import AzureChatOpenAI
+from langchain.prompts import PromptTemplate
 from langchain.sql_database import SQLDatabase
-from langchain.tools.base import BaseTool
+from langchain.tools.base import StateTool
+from langchain.tools.spark_unitycatalog.prompt import SQL_QUERY_VALIDATOR
 from pydantic import BaseModel, Extra, Field
 from requests.adapters import HTTPAdapter
 from sqlalchemy.exc import ProgrammingError
@@ -23,15 +30,15 @@ class BaseSQLDatabaseTool(BaseModel):
 
     # Override BaseTool.Config to appease mypy
     # See https://github.com/pydantic/pydantic/issues/4173
-    class Config(BaseTool.Config):
+    class Config(StateTool.Config):
         """Configuration for this pydantic object."""
 
         arbitrary_types_allowed = True
         extra = Extra.allow
 
 
-class InfoUnityCatalogTool(BaseTool):
-    class Config(BaseTool.Config):
+class InfoUnityCatalogTool(StateTool):
+    class Config(StateTool.Config):
         """Configuration for this pydantic object."""
 
         arbitrary_types_allowed = True
@@ -86,6 +93,7 @@ class InfoUnityCatalogTool(BaseTool):
         session.mount("https://", adapter)
         # TODO: Improve performance by using asyncio or threading to make concurrent requests
         for table_name in table_names:
+            table_name = table_name.strip()
             url = f"https://{self.db_host}/api/2.1/unity-catalog/tables/{self.db_catalog}.{self.db_schema}.{table_name}"
             response = session.get(url, headers=headers)
             if response.status_code != 200:
@@ -100,7 +108,8 @@ class InfoUnityCatalogTool(BaseTool):
                 table_name=table_name,
                 table_comment=table_comment,
             )
-        return f"{final_string}\n{string_data}"
+            final_string = f"{final_string}\n{string_data}"
+        return final_string
 
     def _generate_create_table_query(
         self, table_data: List[Dict], table_name: str, table_comment: str
@@ -160,8 +169,8 @@ class InfoUnityCatalogTool(BaseTool):
         return sample_rows_str
 
 
-class ListUnityCatalogTablesTool(BaseTool):
-    class Config(BaseTool.Config):
+class ListUnityCatalogTablesTool(StateTool):
+    class Config(StateTool.Config):
         """Configuration for this pydantic object."""
 
         arbitrary_types_allowed = True
@@ -223,3 +232,148 @@ class ListUnityCatalogTablesTool(BaseTool):
             comment = table["comment"] if "comment" in table.keys() else None
             table_info += f"{table_name}({comment})\n"
         return table_info
+
+
+class SqlQueryValidatorTool(StateTool):
+    """Tool for validating a SQL query.Use this before running the query."""
+
+    name = "sql_db_query_validator"
+    description = """
+    Input to this tool is sql_query   
+
+    Example Input: "Select * from table1"
+    """
+
+    class Config(StateTool.Config):
+        """Configuration for this pydantic object."""
+
+        arbitrary_types_allowed = True
+        extra = Extra.allow
+
+    def __init__(__pydantic_self__, **data: Any) -> None:
+        """Initialize the tool."""
+        super().__init__(**data)
+
+    def _run(
+        self,
+        query: str,
+        run_manager: Optional[CallbackManagerForToolRun] = None,
+    ) -> str:
+        """Get the schema for tables in a comma-separated list."""
+        return self._validate_sql_query(query)
+
+    async def _arun(
+        self,
+        table_name: str,
+        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
+    ) -> str:
+        raise NotImplementedError("ListSqlTablesTool does not support async")
+
+    def _setup_llm(self):
+        openai.api_type = "azure"
+        openai.api_key = os.getenv("OPENAI_API_KEY")
+        openai.api_base = os.getenv("OPENAI_API_BASE")
+        llm = AzureChatOpenAI(
+            deployment_name=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
+            temperature=0,
+            openai_api_version=os.getenv("OPENAI_API_VERSION"),
+        )
+        return llm
+
+    def _parse_db_schema(self):
+        sql_db_schema_value = {}
+
+        for value in self.state:
+            for key, input_string in value.items():
+                if "sql_db_schema" in key:
+                    tool_input_match = re.search(r"tool_input='(.*?)'", key)
+
+                    if tool_input_match:
+                        tool_input = tool_input_match.group(1)
+                        table_names = [table.strip() for table in tool_input.split(",")]
+
+                        for table_name in table_names:
+                            table_name = table_name.strip()
+                            table_name = table_name.strip("\\n")
+                            create_table_match = re.search(
+                                rf"CREATE TABLE {table_name}.*?USING DELTA",
+                                input_string,
+                                re.DOTALL,
+                            )
+
+                            if create_table_match:
+                                table_schema = create_table_match.group()
+                                sql_db_schema_value[table_name] = table_schema
+
+        return sql_db_schema_value
+
+    def _validate_sql_query(self, query):
+
+        db_schema = self._parse_db_schema()
+
+        if len(db_schema) == 0:
+            db_schema = None
+
+        prompt_input = PromptTemplate(
+            input_variables=["db_schema", "query"],
+            template=SQL_QUERY_VALIDATOR,
+        )
+        chain = LLMChain(llm=self._setup_llm(), prompt=prompt_input)
+
+        query_validation = chain.run(({"db_schema": db_schema, "query": query}))
+
+        return query_validation
+
+
+class QueryUCSQLDataBaseTool(StateTool):
+    """Tool for querying a SQL database."""
+
+    class Config(StateTool.Config):
+        """Configuration for this pydantic object."""
+
+        arbitrary_types_allowed = True
+        extra = Extra.allow
+
+    db: SQLDatabase = Field(exclude=True)
+    name: str = "sql_db_query"
+    description: str = """
+    Input to this tool is a detailed and correct SQL query, output is a result from the database.
+    If the query is not correct, an error message will be returned.
+    If an error is returned, rewrite the query, check the query, and try again.
+    """
+
+    def __init__(__pydantic_self__, **data: Any) -> None:
+        """Initialize the tool."""
+        super().__init__(**data)
+
+    def _run(
+        self,
+        query: str,
+        run_manager: Optional[CallbackManagerForToolRun] = None,
+    ) -> str:
+        """Execute the query, return the results or an error message."""
+        extracted_sql_query = self._extract_sql_query()
+        if extracted_sql_query:
+            executable_query = extracted_sql_query.strip()
+        else:
+            executable_query = query.strip()
+        executable_query = executable_query.strip('"')
+        return self.db.run_no_throw(executable_query)
+
+    async def _arun(
+        self,
+        query: str,
+        run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
+    ) -> str:
+        raise NotImplementedError("SQLQueryTool does not support async")
+
+    def _extract_sql_query(self):
+        for value in self.state:
+            for key, input_string in value.items():
+                if "sql_db_query_validator" in key:
+                    match = re.search(r'The Final SQL query is:\n"(.*?)"', input_string)
+
+                    if match:
+                        sql_query = match.group(1)
+                        return sql_query
+        return None
