@@ -3,8 +3,11 @@
 import json
 import os
 import re
+import os
+import re
 from typing import Any, Dict, List, Optional
 
+import openai
 import requests
 from langchain.callbacks.manager import (
     AsyncCallbackManagerForToolRun,
@@ -14,6 +17,8 @@ from langchain.chains import LLMChain
 from langchain.chat_models import AzureChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.sql_database import SQLDatabase
+from langchain.tools.base import StateTool
+from langchain.tools.spark_unitycatalog.prompt import SQL_QUERY_VALIDATOR
 from langchain.tools.base import StateTool
 from langchain.tools.spark_unitycatalog.prompt import SQL_QUERY_VALIDATOR
 from pydantic import BaseModel, Extra, Field
@@ -30,12 +35,15 @@ class BaseSQLDatabaseTool(BaseModel):
     # Override BaseTool.Config to appease mypy
     # See https://github.com/pydantic/pydantic/issues/4173
     class Config(StateTool.Config):
+    class Config(StateTool.Config):
         """Configuration for this pydantic object."""
 
         arbitrary_types_allowed = True
         extra = Extra.allow
 
 
+class InfoUnityCatalogTool(StateTool):
+    class Config(StateTool.Config):
 class InfoUnityCatalogTool(StateTool):
     class Config(StateTool.Config):
         """Configuration for this pydantic object."""
@@ -93,6 +101,7 @@ class InfoUnityCatalogTool(StateTool):
         # TODO: Improve performance by using asyncio or threading to make concurrent requests
         for table_name in table_names:
             table_name = table_name.strip()
+            table_name = table_name.strip()
             url = f"https://{self.db_host}/api/2.1/unity-catalog/tables/{self.db_catalog}.{self.db_schema}.{table_name}"
             response = session.get(url, headers=headers)
             if response.status_code != 200:
@@ -107,6 +116,8 @@ class InfoUnityCatalogTool(StateTool):
                 table_name=table_name,
                 table_comment=table_comment,
             )
+            final_string = f"{final_string}\n{string_data}"
+        return final_string
             final_string = f"{final_string}\n{string_data}"
         return final_string
 
@@ -168,6 +179,8 @@ class InfoUnityCatalogTool(StateTool):
         return sample_rows_str
 
 
+class ListUnityCatalogTablesTool(StateTool):
+    class Config(StateTool.Config):
 class ListUnityCatalogTablesTool(StateTool):
     class Config(StateTool.Config):
         """Configuration for this pydantic object."""
@@ -274,7 +287,7 @@ class SqlQueryValidatorTool(StateTool):
             temperature=0,
             openai_api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
             openai_api_base=os.getenv("AZURE_OPENAI_API_BASE"),
-            openai_api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+            openai_api_key=os.getenv("AZURE_OPENAI_API_KEY_02"),
             openai_api_type="azure"
         )
         return llm
