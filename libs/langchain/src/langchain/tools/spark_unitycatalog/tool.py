@@ -35,7 +35,7 @@ class BaseSQLDatabaseTool(BaseModel):
     # Override BaseTool.Config to appease mypy
     # See https://github.com/pydantic/pydantic/issues/4173
     class Config(StateTool.Config):
-    class Config(StateTool.Config):
+
         """Configuration for this pydantic object."""
 
         arbitrary_types_allowed = True
@@ -44,8 +44,7 @@ class BaseSQLDatabaseTool(BaseModel):
 
 class InfoUnityCatalogTool(StateTool):
     class Config(StateTool.Config):
-class InfoUnityCatalogTool(StateTool):
-    class Config(StateTool.Config):
+
         """Configuration for this pydantic object."""
 
         arbitrary_types_allowed = True
@@ -118,8 +117,6 @@ class InfoUnityCatalogTool(StateTool):
             )
             final_string = f"{final_string}\n{string_data}"
         return final_string
-            final_string = f"{final_string}\n{string_data}"
-        return final_string
 
     def _generate_create_table_query(
         self, table_data: List[Dict], table_name: str, table_comment: str
@@ -179,8 +176,6 @@ class InfoUnityCatalogTool(StateTool):
         return sample_rows_str
 
 
-class ListUnityCatalogTablesTool(StateTool):
-    class Config(StateTool.Config):
 class ListUnityCatalogTablesTool(StateTool):
     class Config(StateTool.Config):
         """Configuration for this pydantic object."""
