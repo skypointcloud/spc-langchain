@@ -5,7 +5,6 @@ import os
 import re
 from typing import Any, Dict, List, Optional
 
-import openai
 import requests
 from langchain.callbacks.manager import (
     AsyncCallbackManagerForToolRun,
@@ -270,13 +269,13 @@ class SqlQueryValidatorTool(StateTool):
         raise NotImplementedError("ListSqlTablesTool does not support async")
 
     def _setup_llm(self):
-        openai.api_type = "azure"
-        openai.api_key = os.getenv("OPENAI_API_KEY")
-        openai.api_base = os.getenv("OPENAI_API_BASE")
         llm = AzureChatOpenAI(
-            deployment_name=os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME"),
+            deployment_name=os.getenv("AZURE_OPENAI_MASTER_LLM_DEPLOYMENT_NAME"),
             temperature=0,
-            openai_api_version=os.getenv("OPENAI_API_VERSION"),
+            openai_api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+            openai_api_base=os.getenv("AZURE_OPENAI_API_BASE"),
+            openai_api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+            openai_api_type="azure"
         )
         return llm
 
