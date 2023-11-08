@@ -25,8 +25,10 @@ The schema is passed as a key value pair where key is the table name and value i
 The sql_query is passed as a string.
 If the check is passed return the sql_query and use sql_db_query tool to execute the query.
 If the check is failed return an error message and ask the llm to generate correct sql query by using sql_db_schema tool.
+Return only the updated sql query.
+Return the response as The Final SQL Query is <sql_query>
 The schema is {db_schema}.
 The sql_query is {query}.
-Return the response as The Final SQL Query is <sql_query>
 Begin SQL Query Validation.
+
 """
