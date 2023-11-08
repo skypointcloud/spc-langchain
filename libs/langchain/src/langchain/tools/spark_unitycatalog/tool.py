@@ -3,11 +3,8 @@
 import json
 import os
 import re
-import os
-import re
 from typing import Any, Dict, List, Optional
 
-import openai
 import requests
 from langchain.callbacks.manager import (
     AsyncCallbackManagerForToolRun,
@@ -17,8 +14,6 @@ from langchain.chains import LLMChain
 from langchain.chat_models import AzureChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain.sql_database import SQLDatabase
-from langchain.tools.base import StateTool
-from langchain.tools.spark_unitycatalog.prompt import SQL_QUERY_VALIDATOR
 from langchain.tools.base import StateTool
 from langchain.tools.spark_unitycatalog.prompt import SQL_QUERY_VALIDATOR
 from pydantic import BaseModel, Extra, Field
@@ -99,7 +94,6 @@ class InfoUnityCatalogTool(StateTool):
         session.mount("https://", adapter)
         # TODO: Improve performance by using asyncio or threading to make concurrent requests
         for table_name in table_names:
-            table_name = table_name.strip()
             table_name = table_name.strip()
             url = f"https://{self.db_host}/api/2.1/unity-catalog/tables/{self.db_catalog}.{self.db_schema}.{table_name}"
             response = session.get(url, headers=headers)
