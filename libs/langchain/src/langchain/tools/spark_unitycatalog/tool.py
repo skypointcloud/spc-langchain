@@ -276,7 +276,7 @@ class SqlQueryValidatorTool(StateTool):
             temperature=0,
             openai_api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
             openai_api_base=os.getenv("AZURE_OPENAI_API_BASE"),
-            openai_api_key=os.getenv("AZURE_OPENAI_API_KEY_02"),
+            openai_api_key=os.getenv("AZURE_OPENAI_API_KEY"),
             openai_api_type="azure"
         )
         return llm
