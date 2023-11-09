@@ -1206,7 +1206,12 @@ s
         """
         try:
             intermediate_steps = self._prepare_intermediate_steps(intermediate_steps)
-
+            if intermediate_steps:
+                    self.state.append(
+                        {str(intermediate_steps[-1][0]): str(intermediate_steps[-1][1])}
+                    )
+            else:
+                self.state = []
             # Call the LLM to see what to do.
             output = self.agent.plan(
                 intermediate_steps,
@@ -1263,12 +1268,6 @@ s
                 return_direct = tool.return_direct
                 color = color_mapping[agent_action.tool]
                 tool_run_kwargs = self.agent.tool_run_logging_kwargs()
-                if intermediate_steps:
-                    self.state.append(
-                        {str(intermediate_steps[-1][0]): str(intermediate_steps[-1][1])}
-                    )
-                else:
-                    self.state = []
                 # metadata_dict = {}
                 if return_direct:
                     tool_run_kwargs["llm_prefix"] = ""
