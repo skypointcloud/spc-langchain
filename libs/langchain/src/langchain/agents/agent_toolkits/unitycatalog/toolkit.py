@@ -75,5 +75,5 @@ class UCSQLDatabaseToolkit(BaseToolkit):
                 db_warehouse_id=self.db_warehouse_id,
             ),
             QuerySQLCheckerTool(db=self.db, llm=self.llm),
-            SqlQueryValidatorTool(),
+            SqlQueryValidatorTool(llm = self.llm),
         ]
