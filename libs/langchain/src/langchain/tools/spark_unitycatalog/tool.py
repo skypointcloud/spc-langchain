@@ -10,8 +10,9 @@ from langchain.callbacks.manager import (
     AsyncCallbackManagerForToolRun,
     CallbackManagerForToolRun,
 )
+from langchain.base_language import BaseLanguageModel
 from langchain.chains import LLMChain
-from langchain.chat_models import AzureChatOpenAI
+
 from langchain.prompts import PromptTemplate
 from langchain.sql_database import SQLDatabase
 from langchain.tools.base import StateTool
@@ -244,6 +245,7 @@ class SqlQueryValidatorTool(StateTool):
 
     Example Input: "Select * from table1"
     """
+    llm : BaseLanguageModel = Field(exclude=True)
 
     class Config(StateTool.Config):
         """Configuration for this pydantic object."""
@@ -269,17 +271,6 @@ class SqlQueryValidatorTool(StateTool):
         run_manager: Optional[AsyncCallbackManagerForToolRun] = None,
     ) -> str:
         raise NotImplementedError("ListSqlTablesTool does not support async")
-
-    def _setup_llm(self):
-        llm = AzureChatOpenAI(
-            deployment_name=os.getenv("AZURE_OPENAI_MASTER_LLM_DEPLOYMENT_NAME"),
-            temperature=0,
-            openai_api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
-            openai_api_base=os.getenv("AZURE_OPENAI_API_BASE"),
-            openai_api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-            openai_api_type="azure"
-        )
-        return llm
 
     def _parse_db_schema(self):
         sql_db_schema_value = {}
@@ -319,7 +310,7 @@ class SqlQueryValidatorTool(StateTool):
             input_variables=["db_schema", "query"],
             template=SQL_QUERY_VALIDATOR,
         )
-        chain = LLMChain(llm=self._setup_llm(), prompt=prompt_input)
+        chain = LLMChain(llm=self.llm, prompt=prompt_input)
 
         query_validation = chain.run(({"db_schema": db_schema, "query": query}))
 
